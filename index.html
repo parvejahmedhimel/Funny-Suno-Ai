@@ -23,6 +23,10 @@
             --glass: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.18);
             --success: #00c9a7;
+            --fb: #3b5998;
+            --wa: #25d366;
+            --ig: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+            --msg: #0084ff;
         }
 
         body {
@@ -152,6 +156,7 @@
         .upload-text {
             font-size: 1.2rem;
             text-align: center;
+            padding: 0 15px;
         }
 
         .preview-image {
@@ -298,6 +303,7 @@
             align-items: center;
             gap: 20px;
             margin-top: 30px;
+            position: relative;
         }
 
         .social-icons {
@@ -316,15 +322,31 @@
             color: white;
             transition: all 0.3s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            position: relative;
         }
 
-        .fb { background: #3b5998; }
-        .wa { background: #25d366; }
-        .ig { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-        .msg { background: #0084ff; }
+        .fb { background: var(--fb); }
+        .wa { background: var(--wa); }
+        .ig { background: var(--ig); }
+        .msg { background: var(--msg); }
 
         .social-btn:hover {
             transform: translateY(-5px) scale(1.1);
+        }
+
+        .social-btn:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
 
         .share-text {
@@ -351,6 +373,9 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .reset-btn:hover {
@@ -380,6 +405,20 @@
             color: var(--accent);
         }
 
+        .share-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -405,6 +444,16 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
         }
 
         @media (max-width: 768px) {
@@ -443,6 +492,7 @@
 </head>
 <body>
     <div class="particles-container" id="particles"></div>
+    <div class="share-notification" id="shareNotification">ভবিষ্যৎ শেয়ার করা হলো!</div>
     
     <div class="container">
         <header class="header">
@@ -487,13 +537,21 @@
                 </div>
                 
                 <div class="share-section">
-                    <p class="share-text">"দেখো আমার ভবিষ্যৎ কেমন! তোমারটা জানো? Suno তে এখনই চেক করো!"</p>
+                    <p class="share-text" id="shareText">"দেখো আমার ভবিষ্যৎ কেমন! তোমারটা জানো? Suno তে এখনই চেক করো!"</p>
                     
                     <div class="social-icons">
-                        <div class="social-btn fb"><i class="fab fa-facebook-f"></i></div>
-                        <div class="social-btn wa"><i class="fab fa-whatsapp"></i></div>
-                        <div class="social-btn ig"><i class="fab fa-instagram"></i></div>
-                        <div class="social-btn msg"><i class="fab fa-facebook-messenger"></i></div>
+                        <div class="social-btn fb" data-tooltip="ফেসবুকে শেয়ার করুন" id="fbShare">
+                            <i class="fab fa-facebook-f"></i>
+                        </div>
+                        <div class="social-btn wa" data-tooltip="হোয়াটসঅ্যাপে শেয়ার করুন" id="waShare">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                        <div class="social-btn ig" data-tooltip="ইনস্টাগ্রামে শেয়ার করুন" id="igShare">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <div class="social-btn msg" data-tooltip="মেসেঞ্জারে শেয়ার করুন" id="msgShare">
+                            <i class="fab fa-facebook-messenger"></i>
+                        </div>
                     </div>
                     
                     <button class="reset-btn" id="resetBtn"><i class="fas fa-redo"></i> আবার চেষ্টা করুন</button>
@@ -605,6 +663,17 @@
             const userNameInput = document.getElementById('userName');
             const resetBtn = document.getElementById('resetBtn');
             const predictionGrid = document.getElementById('predictionGrid');
+            const shareText = document.getElementById('shareText');
+            const shareNotification = document.getElementById('shareNotification');
+            
+            // Social share buttons
+            const fbShare = document.getElementById('fbShare');
+            const waShare = document.getElementById('waShare');
+            const igShare = document.getElementById('igShare');
+            const msgShare = document.getElementById('msgShare');
+            
+            // Store generated predictions
+            let generatedPredictions = [];
             
             // File upload handling
             uploadArea.addEventListener('click', () => {
@@ -791,14 +860,20 @@
                 
                 // Set user info for result
                 resultImage.src = previewImage.src;
-                resultName.textContent = userNameInput.value.trim();
+                const userName = userNameInput.value.trim();
+                resultName.textContent = userName;
+                
+                // Update share text
+                shareText.innerHTML = `"${userName} এর ভবিষ্যৎ কেমন! তোমারটা জানো? Suno তে এখনই চেক করো!"`;
                 
                 // Clear previous predictions
                 predictionGrid.innerHTML = '';
                 
-                // Generate and display predictions
-                const predictions = generatePredictions(userNameInput.value.trim());
-                predictions.forEach((prediction, index) => {
+                // Generate and store predictions
+                generatedPredictions = generatePredictions(userName);
+                
+                // Display predictions
+                generatedPredictions.forEach((prediction, index) => {
                     const card = document.createElement('div');
                     card.className = 'prediction-card';
                     card.innerHTML = `
@@ -830,15 +905,82 @@
                 userNameInput.value = '';
                 resultContainer.style.display = 'none';
                 document.querySelector('.upload-section').style.display = 'block';
+                generatedPredictions = [];
             });
             
-            // Social share buttons
-            document.querySelectorAll('.social-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    alert('ভবিষ্যৎ শেয়ার করা হচ্ছে! আসল অ্যাপে এটি সোশ্যাল মিডিয়ায় শেয়ার করবে।');
+            // Show share notification
+            function showShareNotification() {
+                shareNotification.style.display = 'block';
+                setTimeout(() => {
+                    shareNotification.style.display = 'none';
+                }, 3000);
+            }
+            
+            // Create share text
+            function getShareText() {
+                const userName = userNameInput.value.trim();
+                if (!userName || generatedPredictions.length === 0) {
+                    return "আমার ভবিষ্যৎ দেখো! Suno তে এখনই চেক করো!";
+                }
+                
+                let text = `দেখো ${userName} এর ভবিষ্যৎ কেমন!\n\n`;
+                text += "Suno এর ভবিষ্যদ্বাণী:\n\n";
+                
+                // Add first 3 predictions
+                for (let i = 0; i < Math.min(3, generatedPredictions.length); i++) {
+                    text += `- ${generatedPredictions[i].value}\n`;
+                }
+                
+                text += `\nতোমার ভবিষ্যৎ জানতে এখনই Suno ব্যবহার করো! [ Here Link: https://sunoaifunny.netlify.app/]`;
+                return text;
+            }
+            
+            // Facebook Share
+            fbShare.addEventListener('click', () => {
+                const shareContent = getShareText();
+                const url = encodeURIComponent(window.location.href);
+                const quote = encodeURIComponent(shareContent);
+                const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
+                
+                window.open(shareUrl, '_blank', 'width=600,height=400');
+                showShareNotification();
+            });
+            
+            // WhatsApp Share
+            waShare.addEventListener('click', () => {
+                const shareContent = getShareText();
+                const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareContent)}`;
+                window.open(shareUrl, '_blank');
+                showShareNotification();
+            });
+            
+            // Instagram Share
+            igShare.addEventListener('click', () => {
+                // Instagram requires an image to share, so we'll share the text via clipboard
+                const shareContent = getShareText();
+                navigator.clipboard.writeText(shareContent).then(() => {
+                    alert('ভবিষ্যদ্বাণী কপি করা হয়েছে! এখন আপনি এটি ইন্সটাগ্রামে পেস্ট করতে পারেন।');
+                    showShareNotification();
                 });
+            });
+            
+            // Messenger Share
+            msgShare.addEventListener('click', () => {
+                const shareContent = getShareText();
+                const shareUrl = `fb-messenger://share/?link=${encodeURIComponent(window.location.href)}&app_id=YOUR_APP_ID`;
+                
+                // Try to open Messenger app
+                window.location.href = shareUrl;
+                
+                // Fallback to clipboard if it fails
+                setTimeout(() => {
+                    navigator.clipboard.writeText(shareContent).then(() => {
+                        alert('মেসেঞ্জার খোলা যায়নি। ভবিষ্যদ্বাণী কপি করা হয়েছে! এখন আপনি এটি মেসেঞ্জারে পেস্ট করতে পারেন।');
+                        showShareNotification();
+                    });
+                }, 500);
             });
         });
     </script>
 </body>
-</html>
+    </html>
